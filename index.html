@@ -1034,7 +1034,10 @@ function toast(msg, type = '') {
 function uid() { return crypto.randomUUID ? crypto.randomUUID() : 'id_' + Date.now() + Math.random(); }
 
 // ============ AUTH ============
+let _authInitialized = false;
+
 async function checkAuth() {
+  // 先处理分享链接的情况
   const params = new URLSearchParams(window.location.search);
   const shareToken = params.get('share');
   if (shareToken) {
@@ -1043,26 +1046,44 @@ async function checkAuth() {
     return;
   }
 
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    state.user = session.user;
-    await loadUserData();
-  } else {
-    state.loading = false;
-    renderLoginPage();
-  }
+  // 设置一个超时兜底：3 秒内如果 onAuthStateChange 没触发，就显示登录页
+  setTimeout(() => {
+    if (!_authInitialized) {
+      _authInitialized = true;
+      state.loading = false;
+      document.getElementById('loader').style.display = 'none';
+      if (state.user) {
+        document.getElementById('app').style.display = 'block';
+        renderApp();
+      } else {
+        renderLoginPage();
+      }
+    }
+  }, 3000);
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'SIGNED_IN' && session) {
-    // 防止和 checkAuth 并发重入
-    if (state.user && state.user.id === session.user.id) return;
-    state.user = session.user;
-    state.loading = true;
-    document.getElementById('loader').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
-    await loadUserData();
+  // 处理分享视图时不跑这里
+  if (state.shareView) return;
+
+  if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+    if (session) {
+      // 如果已经在加载同一个用户的数据了，跳过
+      if (_authInitialized && state.user && state.user.id === session.user.id) return;
+      _authInitialized = true;
+      state.user = session.user;
+      state.loading = true;
+      document.getElementById('loader').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+      await loadUserData();
+    } else {
+      _authInitialized = true;
+      state.loading = false;
+      document.getElementById('loader').style.display = 'none';
+      renderLoginPage();
+    }
   } else if (event === 'SIGNED_OUT') {
+    _authInitialized = true;
     state.user = null;
     state.tabs = [];
     state.prompts = {};
