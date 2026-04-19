@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🌸 Prompt Library · 我的灵感小本本</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Gaegu:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --pink-50:  #fff5f7;
+    --pink-100: #ffe4ec;
+    --pink-200: #ffc9dc;
+    --pink-300: #ffa8c5;
+    --pink-400: #ff7ea8;
+    --pink-500: #ff5591;
+    --cream:    #fff9f0;
+    --butter:   #fff2c9;
+    --mint:     #c7f0db;
+    --lavender: #e3d5ff;
+    --sky:      #cfe8ff;
+    --peach:    #ffd5bf;
+    --ink:      #5c3a4e;
+    --ink-light:#8a6b7d;
+    --border:   #ffb8d1;
+    --shadow:   0 4px 0 0 #ffb8d1;
+    --shadow-lg:0 6px 0 0 #ff8fb5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    min-height: 100vh;
+    font-family: 'Fredoka', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 10% 20%, rgba(255,201,220,0.4) 0%, transparent 40%),
+      radial-gradient(circle at 90% 80%, rgba(227,213,255,0.4) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, rgba(255,242,201,0.3) 0%, transparent 60%),
+      var(--pink-50);
+    background-attachment: fixed;
+  }
+
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::before {
+    top: 10%; left: 5%; width: 40px; height: 40px;
+    background: radial-gradient(circle, var(--pink-300) 30%, transparent 32%);
+    opacity: 0.4;
+    animation: float 6s ease-in-out infinite;
+  }
+  body::after {
+    bottom: 15%; right: 8%; width: 50px; height: 50px;
+    background: radial-gradient(circle, var(--lavender) 30%, transparent 32%);
+    opacity: 0.4;
+    animation: float 8s ease-in-out infinite reverse;
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0) rotate(0); }
+    50%     { transform: translateY(-20px) rotate(10deg); }
+  }
+
+  /* ===== LOGIN PAGE ===== */
+  .login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    position: relative;
+    z-index: 1;
+  }
+  .login-card {
+    background: white;
+    border: 3px solid var(--pink-300);
+    border-radius: 28px;
+    padding: 48px 40px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+  }
+  .login-card h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .login-card .subtitle {
+    font-family: 'Gaegu', cursive;
+    font-size: 16px;
+    color: var(--ink-light);
+    margin-bottom: 32px;
+  }
+  .login-card label {
+    display: block;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-light);
+    margin-bottom: 8px;
+  }
+  .login-card input[type="email"] {
+    width: 100%;
+    padding: 14px 18px;
+    background: var(--cream);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--ink);
+    outline: none;
+    transition: all 0.2s;
+    margin-bottom: 16px;
+  }
+  .login-card input[type="email"]:focus {
+    border-color: var(--pink-400);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(255,168,197,0.2);
+  }
+  .login-card .btn-login {
+    width: 100%;
+    padding: 14px;
+    background: var(--pink-400);
+    color: white;
+    border: 2px solid var(--pink-500);
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 3px 0 0 var(--pink-500);
+    transition: all 0.2s;
+  }
+  .login-card .btn-login:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 0 0 var(--pink-500);
+  }
+  .login-card .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
+  .login-card .hint {
+    font-family: 'Gaegu', cursive;
+    font-size: 14px;
+    color: var(--ink-light);
+    margin-top: 16px;
+    line-height: 1.5;
+  }
+  .login-card .success {
+    background: var(--mint);
+    color: #2d5f47;
+    padding: 16px;
+    border-radius: 12px;
+    margin-top: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .login-card .error {
+    background: #ffe0e0;
+    color: #a02020;
+    padding: 12px;
+    border-radius: 12px;
+    margin-top: 16px;
+    font-size: 13px;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--cream);
+    border-bottom: 3px dashed var(--pink-300);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 2px 0 0 rgba(255,184,209,0.3);
+  }
+  .header-top {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h1 .sparkle {
+    display: inline-block;
+    animation: wiggle 2s ease-in-out infinite;
+  }
+  @keyframes wiggle {
+    0%,100% { transform: rotate(0); }
+    25%     { transform: rotate(-15deg); }
+    75%     { transform: rotate(15deg); }
+  }
+  .subtitle {
+    font-family: 'Gaegu', cursive;
+    font-size: 16px;
+    color: var(--ink-light);
+    margin-top: 4px;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .search-box {
+    position: relative;
+  }
+  .search-box input {
+    font-family: inherit;
+    padding: 10px 16px 10px 40px;
+    width: 220px;
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 999px;
+    font-size: 14px;
+    color: var(--ink);
+    outline: none;
+    transition: all 0.2s;
+    box-shadow: var(--shadow);
+  }
+  .search-box input:focus {
+    border-color: var(--pink-400);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+  .search-box::before {
+    content: '🔍';
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+  }
+  .user-menu {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 999px;
+    box-shadow: var(--shadow);
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .user-menu .logout-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--pink-500);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .user-menu .logout-btn:hover { color: var(--pink-400); }
+
+  /* ===== TABS ===== */
+  .tabs-bar {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .tab {
+    position: relative;
+    padding: 10px 18px;
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 16px 16px 4px 16px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-light);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 0 0 var(--border);
+  }
+  .tab:hover {
+    transform: translateY(-2px);
+    color: var(--ink);
+    box-shadow: 0 4px 0 0 var(--pink-300);
+  }
+  .tab.active {
+    background: var(--pink-400);
+    color: white;
+    border-color: var(--pink-500);
+    box-shadow: 0 3px 0 0 var(--pink-500);
+  }
+  .tab .count {
+    background: rgba(255,255,255,0.4);
+    color: inherit;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .tab.active .count {
+    background: rgba(255,255,255,0.3);
+    color: white;
+  }
+  .tab .share-icon {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+  .tab-actions {
+    display: none;
+    margin-left: 4px;
+    gap: 2px;
+  }
+  .tab.active:hover .tab-actions {
+    display: inline-flex;
+  }
+  .tab-action-btn {
+    background: rgba(255,255,255,0.3);
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: inherit;
+  }
+  .tab-action-btn:hover { background: rgba(255,255,255,0.5); }
+  .add-tab-btn {
+    padding: 10px 16px;
+    background: transparent;
+    border: 2px dashed var(--pink-300);
+    border-radius: 16px;
+    color: var(--ink-light);
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .add-tab-btn:hover {
+    background: var(--pink-100);
+    color: var(--pink-500);
+    transform: translateY(-2px);
+  }
+  .tab-input {
+    padding: 8px 14px;
+    font-family: inherit;
+    font-size: 14px;
+    border: 2px solid var(--pink-400);
+    border-radius: 16px;
+    outline: none;
+    color: var(--ink);
+    width: 140px;
+  }
+
+  /* ===== MAIN ===== */
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .add-prompt-btn {
+    width: 100%;
+    padding: 24px;
+    background: white;
+    border: 3px dashed var(--pink-300);
+    border-radius: 24px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink-light);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+  .add-prompt-btn:hover {
+    border-color: var(--pink-500);
+    background: var(--pink-50);
+    color: var(--pink-500);
+    transform: translateY(-2px);
+  }
+
+  .new-prompt-form {
+    background: white;
+    border: 3px solid var(--pink-300);
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow-lg);
+  }
+  .form-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .form-header h3 {
+    font-size: 20px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .close-btn {
+    background: var(--pink-100);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--ink);
+    transition: all 0.2s;
+  }
+  .close-btn:hover {
+    background: var(--pink-200);
+    transform: rotate(90deg);
+  }
+
+  input[type="text"].form-input,
+  textarea.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--cream);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    outline: none;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+  }
+  textarea.form-input {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.6;
+  }
+  input[type="text"].form-input:focus,
+  textarea.form-input:focus {
+    border-color: var(--pink-400);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(255,168,197,0.2);
+  }
+
+  .image-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .image-preview {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 2px solid var(--border);
+  }
+  .image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .image-preview .remove-img {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: var(--pink-500);
+    color: white;
+    border: 2px solid white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .image-preview:hover .remove-img { opacity: 1; }
+  .image-preview .uploading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--pink-500);
+    font-family: 'Gaegu', cursive;
+  }
+
+  .form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .btn {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 20px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 2px solid;
+  }
+  .btn-primary {
+    background: var(--pink-400);
+    color: white;
+    border-color: var(--pink-500);
+    box-shadow: 0 3px 0 0 var(--pink-500);
+  }
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 0 0 var(--pink-500);
+  }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink-light);
+    border-color: transparent;
+  }
+  .btn-ghost:hover {
+    background: var(--pink-50);
+    color: var(--ink);
+  }
+  .btn-outline {
+    background: white;
+    color: var(--ink);
+    border-color: var(--border);
+    box-shadow: 0 2px 0 0 var(--border);
+  }
+  .btn-outline:hover {
+    transform: translateY(-2px);
+    border-color: var(--pink-400);
+    box-shadow: 0 4px 0 0 var(--pink-300);
+  }
+
+  .prompts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .prompt-card {
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 24px;
+    overflow: hidden;
+    transition: all 0.3s;
+    box-shadow: var(--shadow);
+  }
+  .prompt-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--pink-400);
+    box-shadow: var(--shadow-lg);
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, var(--pink-100) 0%, var(--lavender) 100%);
+    border-bottom: 2px dashed var(--border);
+  }
+  .card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+  }
+  .card-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-light);
+    background: white;
+    padding: 3px 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+  .card-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card-title-input {
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 600;
+    background: white;
+    border: 2px solid var(--pink-400);
+    border-radius: 10px;
+    padding: 4px 10px;
+    color: var(--ink);
+    outline: none;
+    flex: 1;
+  }
+  .card-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .prompt-card:hover .card-actions { opacity: 1; }
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-btn:hover { transform: scale(1.1); }
+  .icon-btn.danger:hover { background: #ffe0e0; }
+  .icon-btn.success:hover { background: var(--mint); }
+
+  .card-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  @media (max-width: 768px) {
+    .card-body { grid-template-columns: 1fr; }
+  }
+  .card-section { padding: 20px; }
+  .card-section.prompt-side {
+    border-right: 2px dashed var(--border);
+  }
+  @media (max-width: 768px) {
+    .card-section.prompt-side {
+      border-right: none;
+      border-bottom: 2px dashed var(--border);
+    }
+  }
+  .section-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'Gaegu', cursive;
+    font-size: 14px;
+    color: var(--pink-500);
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+  .prompt-text {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink);
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: var(--cream);
+    padding: 14px;
+    border-radius: 14px;
+    border: 2px solid var(--butter);
+  }
+  textarea.edit-textarea {
+    width: 100%;
+    padding: 14px;
+    background: var(--cream);
+    border: 2px solid var(--pink-400);
+    border-radius: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink);
+    outline: none;
+    resize: vertical;
+    min-height: 140px;
+  }
+  .image-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .image-grid .image-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 2px solid var(--border);
+    cursor: zoom-in;
+    transition: all 0.2s;
+  }
+  .image-grid .image-item:hover {
+    transform: scale(1.02);
+    border-color: var(--pink-400);
+  }
+  .image-grid .image-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .image-grid .image-item .remove-img {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: var(--pink-500);
+    color: white;
+    border: 2px solid white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .image-grid .image-item:hover .remove-img { opacity: 1; }
+
+  .empty-dropzone {
+    width: 100%;
+    aspect-ratio: 16/9;
+    border: 3px dashed var(--pink-200);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--ink-light);
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--pink-50);
+  }
+  .empty-dropzone:hover {
+    border-color: var(--pink-400);
+    background: var(--pink-100);
+    color: var(--pink-500);
+    transform: scale(1.01);
+  }
+  .empty-dropzone .big-emoji { font-size: 32px; }
+  .empty-dropzone .small-text {
+    font-family: 'Gaegu', cursive;
+    font-size: 14px;
+  }
+  .add-images-btn {
+    background: none;
+    border: none;
+    color: var(--pink-500);
+    font-family: 'Gaegu', cursive;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 999px;
+    transition: all 0.2s;
+  }
+  .add-images-btn:hover { background: var(--pink-100); }
+
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--ink-light);
+  }
+  .empty-state .big-emoji {
+    font-size: 64px;
+    margin-bottom: 16px;
+    display: block;
+    animation: float 4s ease-in-out infinite;
+  }
+  .empty-state p {
+    font-family: 'Gaegu', cursive;
+    font-size: 18px;
+  }
+
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(92, 58, 78, 0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 40px;
+    cursor: zoom-out;
+    backdrop-filter: blur(8px);
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: white;
+    border: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--ink);
+  }
+
+  footer {
+    text-align: center;
+    padding: 32px 20px;
+    font-family: 'Gaegu', cursive;
+    font-size: 14px;
+    color: var(--ink-light);
+    border-top: 2px dashed var(--pink-200);
+    margin-top: 40px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(200%);
+    background: var(--ink);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 999px;
+    font-size: 14px;
+    z-index: 200;
+    transition: transform 0.3s;
+    box-shadow: 0 6px 20px rgba(92,58,78,0.3);
+    max-width: 90vw;
+    text-align: center;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.error { background: #a02020; }
+  .toast.success { background: #2d8a5f; }
+
+  /* Share modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(92, 58, 78, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 150;
+    backdrop-filter: blur(4px);
+  }
+  .modal {
+    background: white;
+    border: 3px solid var(--pink-300);
+    border-radius: 24px;
+    padding: 28px;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: var(--shadow-lg);
+  }
+  .modal h3 {
+    font-size: 20px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .modal p {
+    color: var(--ink-light);
+    font-size: 14px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .share-link-box {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .share-link-box input {
+    flex: 1;
+    padding: 10px 14px;
+    background: var(--cream);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink);
+    outline: none;
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .read-only-banner {
+    background: var(--lavender);
+    border: 2px dashed #9F8FBF;
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    text-align: center;
+    color: #4A3970;
+  }
+  .read-only-banner strong { font-weight: 600; }
+  .read-only-banner .login-link {
+    color: var(--pink-500);
+    text-decoration: underline;
+    font-weight: 600;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: inherit;
+  }
+
+  input[type="file"] { display: none; }
+
+  .loader {
+    text-align: center;
+    padding: 60px;
+    color: var(--ink-light);
+    font-family: 'Gaegu', cursive;
+    font-size: 18px;
+  }
+  .loader::after {
+    content: '...';
+    animation: dots 1.5s steps(4, end) infinite;
+  }
+  @keyframes dots {
+    0%, 20% { content: ''; }
+    40% { content: '.'; }
+    60% { content: '..'; }
+    80%, 100% { content: '...'; }
+  }
+
+  ::selection { background: var(--pink-300); color: white; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--pink-50); }
+  ::-webkit-scrollbar-thumb { background: var(--pink-300); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--pink-400); }
+</style>
+</head>
+<body>
+
+<div id="loader" class="loader" style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+  Loading
+</div>
+
+<div id="app" style="display: none;"></div>
+
+<div class="toast" id="toast"></div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<script>
+// ====================================================================
+// 🔧 CONFIGURATION — 在这里填入你的 Supabase 配置
+// ====================================================================
+
+const SUPABASE_URL = 'https://pcylmvrupbzztokdjxct.supabase.co';   // ← 替换成你的 Project URL
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_jIPbCzyaN8SeB23_OyN2ow_vmhnoYx4'; // ← 替换成你的 Publishable key
+
+// ====================================================================
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+let state = {
+  user: null,
+  tabs: [],
+  activeTabId: null,
+  prompts: {},
+  searchQuery: '',
+  editingTabId: null,
+  editingPromptId: null,
+  showNewForm: false,
+  newPrompt: { title: '', content: '', images: [] },
+  shareView: null,
+  loading: true,
+};
+
+// ============ UTILS ============
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.innerText = str || '';
+  return div.innerHTML;
+}
+function toast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+function uid() { return crypto.randomUUID ? crypto.randomUUID() : 'id_' + Date.now() + Math.random(); }
+
+// ============ AUTH ============
+async function checkAuth() {
+  const params = new URLSearchParams(window.location.search);
+  const shareToken = params.get('share');
+  if (shareToken) {
+    state.shareView = shareToken;
+    await loadSharedView(shareToken);
+    return;
+  }
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    state.user = session.user;
+    await loadUserData();
+  } else {
+    state.loading = false;
+    renderLoginPage();
+  }
+}
+
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'SIGNED_IN' && session) {
+    state.user = session.user;
+    state.loading = true;
+    document.getElementById('loader').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    await loadUserData();
+  } else if (event === 'SIGNED_OUT') {
+    state.user = null;
+    state.tabs = [];
+    state.prompts = {};
+    state.activeTabId = null;
+    renderLoginPage();
+  }
+});
+
+async function sendMagicLink(email) {
+  const { error } = await sb.auth.signInWithOtp({
+    email: email,
+    options: { emailRedirectTo: window.location.origin + window.location.pathname }
+  });
+  if (error) throw error;
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  toast('已登出 👋');
+}
+
+// ============ DATA LOADING ============
+async function loadUserData() {
+  try {
+    const { data: tabs, error: tabsErr } = await sb
+      .from('tabs')
+      .select('*')
+      .eq('user_id', state.user.id)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true });
+    if (tabsErr) throw tabsErr;
+
+    if (!tabs || tabs.length === 0) {
+      const defaults = [
+        { name: '🎮 Clicker', sort_order: 0 },
+        { name: '🎬 Animation', sort_order: 1 },
+        { name: '🎨 Illustration', sort_order: 2 },
+      ];
+      for (const t of defaults) {
+        await sb.from('tabs').insert({ ...t, user_id: state.user.id });
+      }
+      const { data: refreshed } = await sb
+        .from('tabs')
+        .select('*')
+        .eq('user_id', state.user.id)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
+      state.tabs = refreshed || [];
+    } else {
+      state.tabs = tabs;
+    }
+
+    state.activeTabId = state.tabs[0]?.id || null;
+    if (state.activeTabId) await loadPromptsForTab(state.activeTabId);
+
+    state.loading = false;
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    renderApp();
+  } catch (err) {
+    console.error('Load error:', err);
+    toast('加载失败: ' + err.message, 'error');
+    state.loading = false;
+    document.getElementById('loader').style.display = 'none';
+    renderLoginPage();
+  }
+}
+
+async function loadPromptsForTab(tabId) {
+  const { data: prompts, error } = await sb
+    .from('prompts')
+    .select('*, prompt_images(*)')
+    .eq('tab_id', tabId)
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error(error);
+    return;
+  }
+  state.prompts[tabId] = (prompts || []).map(p => ({
+    ...p,
+    images: (p.prompt_images || []).map(img => ({
+      id: img.id,
+      url: getPublicImageUrl(img.storage_path),
+      storage_path: img.storage_path,
+    }))
+  }));
+}
+
+function getPublicImageUrl(storagePath) {
+  const { data } = sb.storage.from('prompt-images').getPublicUrl(storagePath);
+  return data.publicUrl;
+}
+
+// ============ SHARED VIEW ============
+async function loadSharedView(shareToken) {
+  try {
+    const { data: tab, error: tabErr } = await sb
+      .from('tabs')
+      .select('*')
+      .eq('share_token', shareToken)
+      .eq('is_shared', true)
+      .single();
+
+    if (tabErr || !tab) {
+      document.getElementById('loader').textContent = '链接无效或分享已关闭';
+      return;
+    }
+
+    state.tabs = [tab];
+    state.activeTabId = tab.id;
+    await loadPromptsForTab(tab.id);
+
+    const { data: { session } } = await sb.auth.getSession();
+    state.user = session?.user || null;
+
+    state.loading = false;
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    renderSharedView();
+  } catch (err) {
+    console.error(err);
+    document.getElementById('loader').textContent = '加载失败';
+  }
+}
+
+// ============ TAB ACTIONS ============
+async function addTab(name) {
+  name = (name || '').trim();
+  if (!name) { state.editingTabId = null; renderApp(); return; }
+  const { data, error } = await sb
+    .from('tabs')
+    .insert({ name, user_id: state.user.id, sort_order: state.tabs.length })
+    .select()
+    .single();
+  if (error) { toast('创建失败: ' + error.message, 'error'); return; }
+  state.tabs.push(data);
+  state.activeTabId = data.id;
+  state.prompts[data.id] = [];
+  state.editingTabId = null;
+  renderApp();
+  toast('新 tab 创建成功 ✨', 'success');
+}
+
+async function renameTab(id, name) {
+  name = (name || '').trim();
+  if (!name) { state.editingTabId = null; renderApp(); return; }
+  const { error } = await sb.from('tabs').update({ name }).eq('id', id);
+  if (error) { toast('更新失败', 'error'); return; }
+  const t = state.tabs.find(x => x.id === id);
+  if (t) t.name = name;
+  state.editingTabId = null;
+  renderApp();
+}
+
+async function deleteTab(id) {
+  if (!confirm('确定删除这个 tab 吗？里面所有 prompt 都会删掉哦~')) return;
+  const { error } = await sb.from('tabs').delete().eq('id', id);
+  if (error) { toast('删除失败', 'error'); return; }
+  state.tabs = state.tabs.filter(t => t.id !== id);
+  delete state.prompts[id];
+  if (state.activeTabId === id) {
+    state.activeTabId = state.tabs[0]?.id || null;
+    if (state.activeTabId && !state.prompts[state.activeTabId]) {
+      await loadPromptsForTab(state.activeTabId);
+    }
+  }
+  renderApp();
+  toast('已删除 👋');
+}
+
+async function switchTab(id) {
+  state.activeTabId = id;
+  state.showNewForm = false;
+  state.editingPromptId = null;
+  if (!state.prompts[id]) {
+    await loadPromptsForTab(id);
+  }
+  renderApp();
+}
+
+async function toggleShareTab(tabId) {
+  const tab = state.tabs.find(t => t.id === tabId);
+  if (!tab) return;
+
+  if (tab.is_shared) {
+    const { error } = await sb.from('tabs').update({ is_shared: false }).eq('id', tabId);
+    if (error) { toast('操作失败', 'error'); return; }
+    tab.is_shared = false;
+    renderApp();
+    toast('已停止分享');
+  } else {
+    const newToken = uid();
+    const { error } = await sb
+      .from('tabs')
+      .update({ is_shared: true, share_token: newToken })
+      .eq('id', tabId);
+    if (error) { toast('操作失败: ' + error.message, 'error'); return; }
+    tab.is_shared = true;
+    tab.share_token = newToken;
+    renderApp();
+    showShareModal(tab);
+  }
+}
+
+function showShareModal(tab) {
+  const url = window.location.origin + window.location.pathname + '?share=' + tab.share_token;
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal" onclick="event.stopPropagation()">
+      <h3>🔗 分享链接已生成</h3>
+      <p>把这个链接发给朋友，他们打开就能看到「${escapeHtml(tab.name)}」里的所有 prompt（只读）。再点一次分享按钮可以停止分享。</p>
+      <div class="share-link-box">
+        <input type="text" value="${url}" readonly id="shareLinkInput">
+        <button class="btn btn-primary" onclick="copyShareLink()">📋 复制</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="this.closest('.modal-backdrop').remove()">关闭</button>
+      </div>
+    </div>
+  `;
+  backdrop.onclick = () => backdrop.remove();
+  document.body.appendChild(backdrop);
+}
+
+function copyShareLink() {
+  const input = document.getElementById('shareLinkInput');
+  input.select();
+  navigator.clipboard.writeText(input.value).then(() => toast('链接已复制 📋', 'success'));
+}
+
+// ============ PROMPT ACTIONS ============
+async function savePrompt() {
+  const np = state.newPrompt;
+  if (!np.content.trim()) return;
+
+  const { data: prompt, error } = await sb
+    .from('prompts')
+    .insert({
+      tab_id: state.activeTabId,
+      user_id: state.user.id,
+      title: np.title.trim() || '无标题',
+      content: np.content.trim(),
+    })
+    .select()
+    .single();
+
+  if (error) { toast('保存失败: ' + error.message, 'error'); return; }
+
+  for (let i = 0; i < np.images.length; i++) {
+    const img = np.images[i];
+    await uploadImageForPrompt(prompt.id, img.file, i);
+  }
+
+  await loadPromptsForTab(state.activeTabId);
+  closeNewForm();
+  renderApp();
+  toast('保存成功 💕', 'success');
+}
+
+async function uploadImageForPrompt(promptId, file, sortOrder = 0) {
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${state.user.id}/${promptId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error: upErr } = await sb.storage.from('prompt-images').upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+  });
+  if (upErr) { toast('图片上传失败: ' + upErr.message, 'error'); return null; }
+  const { error: dbErr } = await sb.from('prompt_images').insert({
+    prompt_id: promptId,
+    user_id: state.user.id,
+    storage_path: path,
+    sort_order: sortOrder,
+  });
+  if (dbErr) { toast('图片记录失败', 'error'); return null; }
+  return path;
+}
+
+async function updatePrompt(id, updates) {
+  const { error } = await sb.from('prompts').update(updates).eq('id', id);
+  if (error) { toast('更新失败', 'error'); return; }
+  const p = (state.prompts[state.activeTabId] || []).find(x => x.id === id);
+  if (p) Object.assign(p, updates);
+  state.editingPromptId = null;
+  renderPromptsArea();
+  toast('已更新 ✨', 'success');
+}
+
+async function deletePrompt(id) {
+  if (!confirm('确定删除这个 prompt 吗？')) return;
+  const prompt = (state.prompts[state.activeTabId] || []).find(p => p.id === id);
+  if (prompt && prompt.images && prompt.images.length > 0) {
+    const paths = prompt.images.map(img => img.storage_path).filter(Boolean);
+    if (paths.length > 0) {
+      await sb.storage.from('prompt-images').remove(paths);
+    }
+  }
+  const { error } = await sb.from('prompts').delete().eq('id', id);
+  if (error) { toast('删除失败', 'error'); return; }
+  state.prompts[state.activeTabId] = (state.prompts[state.activeTabId] || []).filter(p => p.id !== id);
+  renderApp();
+  toast('已删除 👋');
+}
+
+async function addImagesToPrompt(promptId, files) {
+  const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+  for (let i = 0; i < imageFiles.length; i++) {
+    await uploadImageForPrompt(promptId, imageFiles[i], i);
+  }
+  await loadPromptsForTab(state.activeTabId);
+  renderPromptsArea();
+  toast('图片已添加 🎨', 'success');
+}
+
+async function removeImage(promptId, imageId, storagePath) {
+  if (storagePath) {
+    await sb.storage.from('prompt-images').remove([storagePath]);
+  }
+  await sb.from('prompt_images').delete().eq('id', imageId);
+  const p = (state.prompts[state.activeTabId] || []).find(x => x.id === promptId);
+  if (p) p.images = (p.images || []).filter(img => img.id !== imageId);
+  renderPromptsArea();
+}
+
+function copyPrompt(id) {
+  const p = (state.prompts[state.activeTabId] || []).find(x => x.id === id);
+  if (!p) return;
+  navigator.clipboard.writeText(p.content).then(() => toast('已复制 📋', 'success'));
+}
+
+// ============ NEW PROMPT FORM ============
+function openNewForm() {
+  state.showNewForm = true;
+  state.newPrompt = { title: '', content: '', images: [] };
+  renderApp();
+}
+function closeNewForm() {
+  state.showNewForm = false;
+  state.newPrompt = { title: '', content: '', images: [] };
+  renderApp();
+}
+function handleNewImages(e) {
+  const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+  for (const f of files) {
+    state.newPrompt.images.push({ id: uid(), file: f, previewUrl: URL.createObjectURL(f) });
+  }
+  e.target.value = '';
+  renderApp();
+}
+function removeNewImage(id) {
+  state.newPrompt.images = state.newPrompt.images.filter(i => i.id !== id);
+  renderApp();
+}
+
+// ============ EDITING PROMPT ============
+function startEditPrompt(id) {
+  state.editingPromptId = id;
+  renderPromptsArea();
+}
+function cancelEditPrompt() {
+  state.editingPromptId = null;
+  renderPromptsArea();
+}
+function saveEditPrompt(id) {
+  const title = document.getElementById('editTitle_' + id).value.trim() || '无标题';
+  const content = document.getElementById('editContent_' + id).value.trim();
+  if (!content) { toast('内容不能为空', 'error'); return; }
+  updatePrompt(id, { title, content });
+}
+
+// ============ LIGHTBOX ============
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+document.getElementById('lightbox').addEventListener('click', (e) => {
+  if (e.target.id === 'lightbox') closeLightbox();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeLightbox();
+});
+
+// ============ RENDERING ============
+function renderLoginPage() {
+  document.getElementById('loader').style.display = 'none';
+  const app = document.getElementById('app');
+  app.style.display = 'block';
+  app.innerHTML = `
+    <div class="login-page">
+      <div class="login-card">
+        <h1>🌸 Prompt Library</h1>
+        <div class="subtitle">✨ 我的灵感小本本</div>
+        <label for="loginEmail">邮箱地址</label>
+        <input type="email" id="loginEmail" placeholder="your@email.com">
+        <button class="btn-login" id="loginBtn" onclick="handleLogin()">发送登录链接 ✨</button>
+        <div class="hint">输入邮箱，我们会给你发一封带链接的邮件，点击就能登录，不用记密码 💕</div>
+        <div id="loginMsg"></div>
+      </div>
+    </div>
+  `;
+  document.getElementById('loginEmail').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
+  });
+}
+
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const msg = document.getElementById('loginMsg');
+  const btn = document.getElementById('loginBtn');
+  if (!email || !email.includes('@')) {
+    msg.innerHTML = '<div class="error">请输入有效的邮箱地址</div>';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = '发送中...';
+  try {
+    await sendMagicLink(email);
+    msg.innerHTML = `<div class="success">✨ 邮件已发送！请去 <strong>${escapeHtml(email)}</strong> 的收件箱（包括垃圾邮件）查收，点击邮件里的链接就能登录。</div>`;
+    btn.textContent = '邮件已发送 ✓';
+  } catch (err) {
+    msg.innerHTML = `<div class="error">发送失败: ${escapeHtml(err.message)}</div>`;
+    btn.disabled = false;
+    btn.textContent = '发送登录链接 ✨';
+  }
+}
+
+function renderApp() {
+  const app = document.getElementById('app');
+  const userEmail = state.user?.email || '';
+  const userInitial = userEmail.charAt(0).toUpperCase() || '?';
+
+  app.innerHTML = `
+    <header>
+      <div class="header-top">
+        <div>
+          <h1><span class="sparkle">🌸</span> Prompt Library</h1>
+          <div class="subtitle">✨ 我的灵感小本本 · 收藏每一个好用的 prompt</div>
+        </div>
+        <div class="header-right">
+          <div class="search-box">
+            <input type="text" id="searchInput" placeholder="搜索 prompt..." value="${escapeHtml(state.searchQuery)}">
+          </div>
+          <div class="user-menu">
+            <span title="${escapeHtml(userEmail)}">👋 ${escapeHtml(userEmail)}</span>
+            <button class="logout-btn" onclick="logout()">登出</button>
+          </div>
+        </div>
+      </div>
+      <div class="tabs-bar" id="tabsBar"></div>
+    </header>
+    <main>
+      <div id="formArea"></div>
+      <div id="promptsArea"></div>
+    </main>
+    <footer>
+      💕 双击 tab 名字可以重命名 · 数据云端同步 💕
+    </footer>
+  `;
+
+  document.getElementById('searchInput').addEventListener('input', e => {
+    state.searchQuery = e.target.value;
+    renderPromptsArea();
+  });
+
+  renderTabsBar();
+  renderFormArea();
+  renderPromptsArea();
+}
+
+function renderTabsBar() {
+  const bar = document.getElementById('tabsBar');
+  if (!bar) return;
+  bar.innerHTML = '';
+  state.tabs.forEach(tab => {
+    if (state.editingTabId === tab.id) {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'tab-input';
+      input.value = tab.name;
+      input.onblur = () => renameTab(tab.id, input.value);
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') renameTab(tab.id, input.value);
+        if (e.key === 'Escape') { state.editingTabId = null; renderTabsBar(); }
+      };
+      bar.appendChild(input);
+      setTimeout(() => input.focus(), 0);
+    } else {
+      const btn = document.createElement('button');
+      btn.className = 'tab' + (state.activeTabId === tab.id ? ' active' : '');
+      const count = (state.prompts[tab.id] || []).length;
+      const shareIcon = tab.is_shared ? '<span class="share-icon" title="已分享">🔗</span>' : '';
+      let html = `<span>${escapeHtml(tab.name)}</span>${shareIcon}<span class="count">${count}</span>`;
+      if (state.activeTabId === tab.id) {
+        html += `
+          <span class="tab-actions">
+            <button class="tab-action-btn" onclick="event.stopPropagation(); toggleShareTab('${tab.id}')" title="${tab.is_shared ? '停止分享' : '生成分享链接'}">${tab.is_shared ? '🔓' : '🔗'}</button>
+            ${state.tabs.length > 1 ? `<button class="tab-action-btn" onclick="event.stopPropagation(); deleteTab('${tab.id}')" title="删除">✕</button>` : ''}
+          </span>
+        `;
+      }
+      btn.innerHTML = html;
+      btn.onclick = () => switchTab(tab.id);
+      btn.ondblclick = () => { state.editingTabId = tab.id; renderTabsBar(); };
+      bar.appendChild(btn);
+    }
+  });
+
+  if (state.editingTabId === 'new') {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'tab-input';
+    input.placeholder = '给新 tab 起个名字~';
+    input.onblur = () => addTab(input.value);
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') addTab(input.value);
+      if (e.key === 'Escape') { state.editingTabId = null; renderTabsBar(); }
+    };
+    bar.appendChild(input);
+    setTimeout(() => input.focus(), 0);
+  } else {
+    const add = document.createElement('button');
+    add.className = 'add-tab-btn';
+    add.innerHTML = '<span>➕</span><span>新 tab</span>';
+    add.onclick = () => { state.editingTabId = 'new'; renderTabsBar(); };
+    bar.appendChild(add);
+  }
+}
+
+function renderFormArea() {
+  const area = document.getElementById('formArea');
+  if (!area) return;
+  if (!state.showNewForm) {
+    area.innerHTML = `
+      <button class="add-prompt-btn" onclick="openNewForm()">
+        <span style="font-size: 20px;">➕</span>
+        <span>添加新的 prompt</span>
+      </button>
+    `;
+    return;
+  }
+  const np = state.newPrompt;
+  area.innerHTML = `
+    <div class="new-prompt-form">
+      <div class="form-header">
+        <h3><span>✍️</span> 新的 prompt</h3>
+        <button class="close-btn" onclick="closeNewForm()">✕</button>
+      </div>
+      <input type="text" class="form-input" id="newTitle" placeholder="标题，比如「可爱的 3D 图标」" value="${escapeHtml(np.title)}">
+      <textarea class="form-input" id="newContent" placeholder="把你的 prompt 粘在这里...">${escapeHtml(np.content)}</textarea>
+      ${np.images.length > 0 ? `
+        <div class="image-preview-grid">
+          ${np.images.map(img => `
+            <div class="image-preview">
+              <img src="${img.previewUrl}" alt="">
+              <button class="remove-img" onclick="removeNewImage('${img.id}')">✕</button>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+      <div class="form-actions">
+        <div>
+          <input type="file" id="newImagesInput" accept="image/*" multiple onchange="handleNewImages(event)">
+          <button class="btn btn-outline" onclick="document.getElementById('newImagesInput').click()">
+            <span>🖼️</span> 添加图片
+          </button>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-ghost" onclick="closeNewForm()">取消</button>
+          <button class="btn btn-primary" onclick="savePrompt()" id="saveBtn" ${np.content.trim() ? '' : 'disabled'}>
+            <span>💾</span> 保存
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('newTitle').addEventListener('input', e => { state.newPrompt.title = e.target.value; });
+  document.getElementById('newContent').addEventListener('input', e => {
+    state.newPrompt.content = e.target.value;
+    document.getElementById('saveBtn').disabled = !e.target.value.trim();
+  });
+}
+
+function renderPromptsArea() {
+  const area = document.getElementById('promptsArea');
+  if (!area) return;
+  const list = state.prompts[state.activeTabId] || [];
+  const q = state.searchQuery.toLowerCase().trim();
+  const filtered = q
+    ? list.filter(p => (p.title || '').toLowerCase().includes(q) || (p.content || '').toLowerCase().includes(q))
+    : list;
+
+  if (filtered.length === 0) {
+    area.innerHTML = `
+      <div class="empty-state">
+        <span class="big-emoji">${q ? '🔍' : '🌱'}</span>
+        <p>${q ? '没找到相关的 prompt~' : '还没有 prompt，快添加第一个吧！'}</p>
+      </div>
+    `;
+    return;
+  }
+
+  area.innerHTML = '<div class="prompts-list">' +
+    filtered.map((p, i) => renderPromptCard(p, filtered.length - i)).join('') +
+    '</div>';
+
+  filtered.forEach(p => {
+    const card = document.getElementById('card_' + p.id);
+    if (!card) return;
+    const fileInput = document.getElementById('fileInput_' + p.id);
+    if (fileInput) {
+      fileInput.addEventListener('change', e => addImagesToPrompt(p.id, e.target.files));
+    }
+  });
+}
+
+function renderPromptCard(p, num) {
+  const isEditing = state.editingPromptId === p.id;
+  const imagesHtml = p.images && p.images.length > 0
+    ? `<div class="image-grid">
+         ${p.images.map(img => `
+           <div class="image-item" onclick="openLightbox('${img.url}')">
+             <img src="${img.url}" alt="">
+             <button class="remove-img" onclick="event.stopPropagation(); removeImage('${p.id}', '${img.id}', '${img.storage_path}')">✕</button>
+           </div>
+         `).join('')}
+       </div>`
+    : `<div class="empty-dropzone" onclick="document.getElementById('fileInput_${p.id}').click()">
+         <span class="big-emoji">🖼️</span>
+         <span class="small-text">点击上传图片~</span>
+       </div>`;
+
+  return `
+    <article class="prompt-card" id="card_${p.id}">
+      <div class="card-header">
+        <div class="card-title-row">
+          <span class="card-number">№ ${String(num).padStart(3, '0')}</span>
+          ${isEditing
+            ? `<input class="card-title-input" id="editTitle_${p.id}" value="${escapeHtml(p.title)}">`
+            : `<span class="card-title">${escapeHtml(p.title)}</span>`}
+        </div>
+        <div class="card-actions">
+          ${isEditing
+            ? `<button class="icon-btn success" onclick="saveEditPrompt('${p.id}')" title="保存">💾</button>
+               <button class="icon-btn" onclick="cancelEditPrompt()" title="取消">✕</button>`
+            : `<button class="icon-btn" onclick="copyPrompt('${p.id}')" title="复制">📋</button>
+               <button class="icon-btn" onclick="startEditPrompt('${p.id}')" title="编辑">✏️</button>
+               <button class="icon-btn danger" onclick="deletePrompt('${p.id}')" title="删除">🗑️</button>`}
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-section prompt-side">
+          <div class="section-label"><span>✨ Prompt</span></div>
+          ${isEditing
+            ? `<textarea class="edit-textarea" id="editContent_${p.id}">${escapeHtml(p.content)}</textarea>`
+            : `<div class="prompt-text">${escapeHtml(p.content)}</div>`}
+        </div>
+        <div class="card-section">
+          <div class="section-label">
+            <span>🎨 成果 · ${p.images?.length || 0}</span>
+            <button class="add-images-btn" onclick="document.getElementById('fileInput_${p.id}').click()">＋ 加图</button>
+          </div>
+          <input type="file" id="fileInput_${p.id}" accept="image/*" multiple>
+          ${imagesHtml}
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderSharedView() {
+  const tab = state.tabs[0];
+  const list = state.prompts[tab.id] || [];
+  const isOwner = state.user && tab.user_id === state.user.id;
+
+  document.getElementById('app').innerHTML = `
+    <header>
+      <div class="header-top">
+        <div>
+          <h1><span class="sparkle">🌸</span> Prompt Library</h1>
+          <div class="subtitle">✨ ${escapeHtml(tab.name)} · 分享视图</div>
+        </div>
+        <div class="header-right">
+          ${isOwner
+            ? `<button class="btn btn-outline" onclick="goToMyLibrary()">回到我的库</button>`
+            : `<button class="btn btn-primary" onclick="goToLogin()">登录开自己的库 ✨</button>`}
+        </div>
+      </div>
+    </header>
+    <main>
+      <div class="read-only-banner">
+        🔒 这是 <strong>${escapeHtml(tab.name)}</strong> 的只读分享视图，共 ${list.length} 个 prompt。
+        ${isOwner ? '' : '<br>想拥有自己的 prompt 库？<button class="login-link" onclick="goToLogin()">点这里登录</button>'}
+      </div>
+      <div class="prompts-list">
+        ${list.map((p, i) => renderSharedPromptCard(p, list.length - i)).join('') || '<div class="empty-state"><span class="big-emoji">🌱</span><p>这里还没有 prompt~</p></div>'}
+      </div>
+    </main>
+    <footer>
+      💕 由 Prompt Library 强力驱动 💕
+    </footer>
+  `;
+}
+
+function renderSharedPromptCard(p, num) {
+  const imagesHtml = p.images && p.images.length > 0
+    ? `<div class="image-grid">
+         ${p.images.map(img => `
+           <div class="image-item" onclick="openLightbox('${img.url}')">
+             <img src="${img.url}" alt="">
+           </div>
+         `).join('')}
+       </div>`
+    : `<div class="empty-dropzone" style="cursor: default;">
+         <span class="big-emoji">🌫️</span>
+         <span class="small-text">这条还没有图片</span>
+       </div>`;
+
+  return `
+    <article class="prompt-card">
+      <div class="card-header">
+        <div class="card-title-row">
+          <span class="card-number">№ ${String(num).padStart(3, '0')}</span>
+          <span class="card-title">${escapeHtml(p.title)}</span>
+        </div>
+        <div class="card-actions" style="opacity: 1;">
+          <button class="icon-btn" onclick="navigator.clipboard.writeText(${JSON.stringify(p.content).replace(/"/g, '&quot;')}).then(() => toast('已复制 📋', 'success'))" title="复制">📋</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-section prompt-side">
+          <div class="section-label"><span>✨ Prompt</span></div>
+          <div class="prompt-text">${escapeHtml(p.content)}</div>
+        </div>
+        <div class="card-section">
+          <div class="section-label"><span>🎨 成果 · ${p.images?.length || 0}</span></div>
+          ${imagesHtml}
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function goToLogin() {
+  window.location.search = '';
+}
+function goToMyLibrary() {
+  window.location.search = '';
+}
+
+// ============ INIT ============
+checkAuth();
+</script>
+
+</body>
+</html>
