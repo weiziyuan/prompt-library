@@ -1093,25 +1093,7 @@ async function loadUserData() {
       .order('created_at', { ascending: true });
     if (tabsErr) throw tabsErr;
 
-    if (!tabs || tabs.length === 0) {
-      const defaults = [
-        { name: '🎮 Clicker', sort_order: 0 },
-        { name: '🎬 Animation', sort_order: 1 },
-        { name: '🎨 Illustration', sort_order: 2 },
-      ];
-      for (const t of defaults) {
-        await sb.from('tabs').insert({ ...t, user_id: state.user.id });
-      }
-      const { data: refreshed } = await sb
-        .from('tabs')
-        .select('*')
-        .eq('user_id', state.user.id)
-        .order('sort_order', { ascending: true })
-        .order('created_at', { ascending: true });
-      state.tabs = refreshed || [];
-    } else {
-      state.tabs = tabs;
-    }
+    state.tabs = tabs || [];
 
     state.activeTabId = state.tabs[0]?.id || null;
     if (state.activeTabId) await loadPromptsForTab(state.activeTabId);
@@ -1649,6 +1631,19 @@ function renderFormArea() {
 function renderPromptsArea() {
   const area = document.getElementById('promptsArea');
   if (!area) return;
+
+  if (!state.activeTabId || state.tabs.length === 0) {
+    area.innerHTML = `
+      <div class="empty-state">
+        <span class="big-emoji">🌱</span>
+        <p>欢迎！先在上方点 <strong>「+ 新 tab」</strong> 创建你的第一个分类吧～</p>
+        <p style="margin-top: 12px; font-size: 14px; opacity: 0.7;">比如：Clicker、Animation、Illustration、文案、设计灵感...</p>
+      </div>
+    `;
+    document.getElementById('formArea').innerHTML = '';
+    return;
+  }
+
   const list = state.prompts[state.activeTabId] || [];
   const q = state.searchQuery.toLowerCase().trim();
   const filtered = q
