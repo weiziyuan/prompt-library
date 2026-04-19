@@ -1055,6 +1055,8 @@ async function checkAuth() {
 
 sb.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_IN' && session) {
+    // 防止和 checkAuth 并发重入
+    if (state.user && state.user.id === session.user.id) return;
     state.user = session.user;
     state.loading = true;
     document.getElementById('loader').style.display = 'flex';
@@ -1083,7 +1085,10 @@ async function logout() {
 }
 
 // ============ DATA LOADING ============
+let _loadingInProgress = false;
 async function loadUserData() {
+  if (_loadingInProgress) return;
+  _loadingInProgress = true;
   try {
     const { data: tabs, error: tabsErr } = await sb
       .from('tabs')
@@ -1107,7 +1112,15 @@ async function loadUserData() {
     toast('加载失败: ' + err.message, 'error');
     state.loading = false;
     document.getElementById('loader').style.display = 'none';
-    renderLoginPage();
+    // 虽然报错但用户已登录，仍然显示 app（空状态）
+    if (state.user) {
+      document.getElementById('app').style.display = 'block';
+      renderApp();
+    } else {
+      renderLoginPage();
+    }
+  } finally {
+    _loadingInProgress = false;
   }
 }
 
