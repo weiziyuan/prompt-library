@@ -980,8 +980,11 @@
 </head>
 <body>
 
-<div id="loader" class="loader" style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
-  Loading
+<div id="loader" class="loader" style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;">
+  <div>Loading</div>
+  <button id="emergencyBtn" style="display: none; padding: 10px 20px; border: 2px solid #ff7ea8; background: white; color: #ff5591; border-radius: 999px; font-family: inherit; font-size: 14px; cursor: pointer;" onclick="emergencyReset()">
+    卡住了？点这里重置
+  </button>
 </div>
 
 <div id="app" style="display: none;"></div>
@@ -1046,6 +1049,14 @@ async function checkAuth() {
     return;
   }
 
+  // 5 秒后如果还没初始化，显示"一键重置"按钮
+  setTimeout(() => {
+    const btn = document.getElementById('emergencyBtn');
+    if (btn && !_authInitialized) {
+      btn.style.display = 'inline-block';
+    }
+  }, 5000);
+
   // 设置一个超时兜底：3 秒内如果 onAuthStateChange 没触发，就显示登录页
   setTimeout(() => {
     if (!_authInitialized) {
@@ -1060,6 +1071,15 @@ async function checkAuth() {
       }
     }
   }, 3000);
+}
+
+// 一键救场：清所有本地缓存并重新加载
+function emergencyReset() {
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+  } catch (e) {}
+  location.reload();
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {
