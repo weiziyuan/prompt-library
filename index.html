@@ -267,6 +267,27 @@
   }
   .user-menu .logout-btn:hover { color: var(--pink-400); }
 
+  .backup-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 999px;
+    box-shadow: var(--shadow);
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .backup-btn:hover {
+    transform: translateY(-2px);
+    border-color: var(--pink-400);
+    box-shadow: var(--shadow-lg);
+  }
+
   /* ===== TABS ===== */
   .tabs-bar {
     max-width: 1200px;
@@ -1125,6 +1146,365 @@ async function logout() {
   toast('已登出 👋');
 }
 
+// ============ 备份导出 ============
+function showBackupMenu() {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal" onclick="event.stopPropagation()">
+      <h3>📦 下载备份</h3>
+      <p>把你所有 tab 和 prompt 打包下载到本地。推荐每隔一段时间备份一次，保护你的宝贵内容 💕</p>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+        <button class="btn btn-primary" style="width: 100%; justify-content: flex-start;" onclick="exportAsExcel(); this.closest('.modal-backdrop').remove();">
+          <span>📊</span>
+          <span style="text-align: left;">
+            <div style="font-weight: 600;">下载 Excel 表格（.xlsx）</div>
+            <div style="font-size: 12px; opacity: 0.9; font-weight: 400;">在 Excel / Numbers 里直接打开，易于浏览</div>
+          </span>
+        </button>
+        <button class="btn btn-outline" style="width: 100%; justify-content: flex-start;" onclick="exportAsPDF(); this.closest('.modal-backdrop').remove();">
+          <span>📄</span>
+          <span style="text-align: left;">
+            <div style="font-weight: 600;">下载 PDF 文档（.pdf）</div>
+            <div style="font-size: 12px; opacity: 0.7; font-weight: 400;">包含图片的完整文档，可打印，永久保存</div>
+          </span>
+        </button>
+        <button class="btn btn-outline" style="width: 100%; justify-content: flex-start;" onclick="exportAsJSON(); this.closest('.modal-backdrop').remove();">
+          <span>💾</span>
+          <span style="text-align: left;">
+            <div style="font-weight: 600;">下载 JSON 完整备份（.json）</div>
+            <div style="font-size: 12px; opacity: 0.7; font-weight: 400;">包含所有数据+图片链接，用于恢复</div>
+          </span>
+        </button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="this.closest('.modal-backdrop').remove()">取消</button>
+      </div>
+    </div>
+  `;
+  backdrop.onclick = () => backdrop.remove();
+  document.body.appendChild(backdrop);
+}
+
+async function fetchAllData() {
+  // 抓取所有 tabs
+  const { data: tabs, error: tabsErr } = await sb
+    .from('tabs')
+    .select('*')
+    .eq('user_id', state.user.id)
+    .order('sort_order', { ascending: true });
+  if (tabsErr) throw tabsErr;
+
+  // 抓取所有 prompts + images
+  const { data: prompts, error: prErr } = await sb
+    .from('prompts')
+    .select('*, prompt_images(*)')
+    .eq('user_id', state.user.id)
+    .order('created_at', { ascending: false });
+  if (prErr) throw prErr;
+
+  return { tabs: tabs || [], prompts: prompts || [] };
+}
+
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function exportAsJSON() {
+  try {
+    toast('正在打包数据...', 'success');
+    const { tabs, prompts } = await fetchAllData();
+
+    // 在 prompts 里嵌入图片的完整 URL（方便人看，也方便恢复）
+    const enrichedPrompts = prompts.map(p => ({
+      ...p,
+      image_urls: (p.prompt_images || []).map(img => getPublicImageUrl(img.storage_path))
+    }));
+
+    const backup = {
+      exported_at: new Date().toISOString(),
+      user_email: state.user.email,
+      total_tabs: tabs.length,
+      total_prompts: prompts.length,
+      tabs: tabs,
+      prompts: enrichedPrompts,
+    };
+
+    const json = JSON.stringify(backup, null, 2);
+    const date = new Date().toISOString().slice(0, 10);
+    downloadFile(json, `prompt-library-backup-${date}.json`, 'application/json');
+    toast('JSON 备份已下载 💾', 'success');
+  } catch (err) {
+    console.error('导出 JSON 失败:', err);
+    toast('导出失败: ' + err.message, 'error');
+  }
+}
+
+async function exportAsPDF() {
+  try {
+    toast('正在生成 PDF... 需要几秒钟', 'success');
+    const { tabs, prompts } = await fetchAllData();
+
+    if (prompts.length === 0) {
+      toast('还没有 prompt 可以导出~', 'error');
+      return;
+    }
+
+    const tabMap = {};
+    tabs.forEach(t => tabMap[t.id] = t.name);
+
+    // 按 tab 分组
+    const groupedByTab = {};
+    prompts.forEach(p => {
+      const tabName = tabMap[p.tab_id] || '(未分类)';
+      if (!groupedByTab[tabName]) groupedByTab[tabName] = [];
+      groupedByTab[tabName].push(p);
+    });
+
+    const date = new Date().toLocaleString('zh-CN');
+    const exportDate = new Date().toISOString().slice(0, 10);
+
+    // 构建打印用 HTML
+    let html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Prompt Library 备份 - ${exportDate}</title>
+<style>
+  @page { size: A4; margin: 20mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #333;
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+  }
+  .header {
+    text-align: center;
+    border-bottom: 3px solid #ff7ea8;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+  }
+  .header h1 { color: #ff5591; font-size: 28px; margin: 0 0 8px; }
+  .header .meta { color: #888; font-size: 12px; }
+  .tab-section {
+    margin-bottom: 40px;
+    page-break-inside: avoid;
+  }
+  .tab-title {
+    font-size: 22px;
+    color: #ff5591;
+    border-left: 6px solid #ff7ea8;
+    padding-left: 12px;
+    margin: 30px 0 20px;
+  }
+  .prompt-card {
+    border: 1px solid #ffc9dc;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    page-break-inside: avoid;
+  }
+  .prompt-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #5c3a4e;
+    margin-bottom: 8px;
+  }
+  .prompt-meta {
+    font-size: 11px;
+    color: #999;
+    margin-bottom: 12px;
+  }
+  .prompt-content {
+    background: #fff9f0;
+    border: 1px solid #ffe4ec;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: "SF Mono", Monaco, Consolas, monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-bottom: 12px;
+  }
+  .prompt-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .prompt-images img {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 8px;
+    border: 1px solid #ffc9dc;
+  }
+  .no-images {
+    color: #bbb;
+    font-size: 12px;
+    font-style: italic;
+  }
+  .footer {
+    text-align: center;
+    color: #aaa;
+    font-size: 11px;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px dashed #ffc9dc;
+  }
+  @media print {
+    .no-print { display: none; }
+  }
+  .print-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 24px;
+    background: #ff5591;
+    color: white;
+    border: none;
+    border-radius: 999px;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 1000;
+  }
+</style>
+</head>
+<body>
+<button class="print-btn no-print" onclick="window.print()">🖨️ 保存为 PDF</button>
+
+<div class="header">
+  <h1>🌸 Prompt Library 备份</h1>
+  <div class="meta">
+    用户：${escapeHtml(state.user.email)} · 导出时间：${escapeHtml(date)}<br>
+    共 ${tabs.length} 个分类，${prompts.length} 个 prompt
+  </div>
+</div>
+`;
+
+    for (const tabName of Object.keys(groupedByTab)) {
+      const list = groupedByTab[tabName];
+      html += `<div class="tab-section">
+        <div class="tab-title">${escapeHtml(tabName)} (${list.length})</div>`;
+
+      for (const p of list) {
+        const imgs = p.prompt_images || [];
+        const createdAt = p.created_at ? new Date(p.created_at).toLocaleString('zh-CN') : '';
+        html += `<div class="prompt-card">
+          <div class="prompt-title">${escapeHtml(p.title || '无标题')}</div>
+          <div class="prompt-meta">创建于 ${escapeHtml(createdAt)}</div>
+          <div class="prompt-content">${escapeHtml(p.content || '')}</div>`;
+
+        if (imgs.length > 0) {
+          html += '<div class="prompt-images">';
+          for (const img of imgs) {
+            const url = getPublicImageUrl(img.storage_path);
+            html += `<img src="${url}" alt="">`;
+          }
+          html += '</div>';
+        } else {
+          html += '<div class="no-images">（这条 prompt 没有配图）</div>';
+        }
+
+        html += `</div>`;
+      }
+      html += `</div>`;
+    }
+
+    html += `<div class="footer">💕 由 Prompt Library 生成 · ${exportDate} 💕</div>
+<script>
+// 图片加载完再提示用户打印
+const imgs = document.querySelectorAll('img');
+if (imgs.length > 0) {
+  let loaded = 0;
+  const total = imgs.length;
+  imgs.forEach(img => {
+    const done = () => { loaded++; if (loaded === total) console.log('图片已全部加载'); };
+    if (img.complete) done();
+    else { img.addEventListener('load', done); img.addEventListener('error', done); }
+  });
+}
+<\/script>
+</body>
+</html>`;
+
+    // 在新窗口打开
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast('请允许弹出窗口，然后重试', 'error');
+      return;
+    }
+    printWindow.document.write(html);
+    printWindow.document.close();
+
+    toast('已打开打印预览页，点右上角"保存为 PDF" 🖨️', 'success');
+  } catch (err) {
+    console.error('导出 PDF 失败:', err);
+    toast('导出失败: ' + err.message, 'error');
+  }
+}
+
+async function exportAsExcel() {
+  try {
+    toast('正在生成 Excel...', 'success');
+    const { tabs, prompts } = await fetchAllData();
+
+    // 构建表格数据：每行一条 prompt
+    const tabMap = {};
+    tabs.forEach(t => tabMap[t.id] = t.name);
+
+    // Excel 打开 CSV 时，UTF-8 BOM 能让中文正常显示
+    const BOM = '\uFEFF';
+
+    // CSV 里单元格如果包含逗号、引号、换行，需要用双引号包起来
+    // 且里面的双引号要转义成 ""
+    const escapeCSV = (val) => {
+      if (val === null || val === undefined) return '';
+      const str = String(val);
+      if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    };
+
+    const rows = [];
+    // 表头
+    rows.push(['分类', '标题', 'Prompt 内容', '图片数量', '图片链接', '创建时间'].map(escapeCSV).join(','));
+
+    prompts.forEach(p => {
+      const tabName = tabMap[p.tab_id] || '(未分类)';
+      const imgUrls = (p.prompt_images || []).map(img => getPublicImageUrl(img.storage_path)).join(' | ');
+      const createdAt = p.created_at ? new Date(p.created_at).toLocaleString('zh-CN') : '';
+      rows.push([
+        escapeCSV(tabName),
+        escapeCSV(p.title),
+        escapeCSV(p.content),
+        escapeCSV(p.prompt_images?.length || 0),
+        escapeCSV(imgUrls),
+        escapeCSV(createdAt),
+      ].join(','));
+    });
+
+    const csv = BOM + rows.join('\r\n');
+    const date = new Date().toISOString().slice(0, 10);
+    // 用 .csv 格式，Excel/Numbers 都能双击打开，正确显示中文
+    downloadFile(csv, `prompt-library-${date}.csv`, 'text/csv;charset=utf-8');
+    toast('Excel 表格已下载 📊', 'success');
+  } catch (err) {
+    console.error('导出 Excel 失败:', err);
+    toast('导出失败: ' + err.message, 'error');
+  }
+}
+
 // ============ DATA LOADING ============
 let _loadingInProgress = false;
 async function loadUserData() {
@@ -1542,6 +1922,7 @@ function renderApp() {
           <div class="search-box">
             <input type="text" id="searchInput" placeholder="搜索 prompt..." value="${escapeHtml(state.searchQuery)}">
           </div>
+          <button class="backup-btn" onclick="showBackupMenu()" title="下载备份">📦 备份</button>
           <div class="user-menu">
             <span title="${escapeHtml(userEmail)}">👋 ${escapeHtml(userEmail)}</span>
             <button class="logout-btn" onclick="logout()">登出</button>
