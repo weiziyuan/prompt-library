@@ -1029,9 +1029,9 @@ const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_x3MnmyJQyi7w6Ub2-cMYaQ_PS6S1Ces
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    // 禁用自动刷新：避免某些浏览器（带扩展/隐私插件的 Chrome）下验证请求卡死
+    // 开启自动刷新：让登录状态能保持（refresh token 默认有效 7 天）
     autoRefreshToken: true,
-    // 仍然持久化 session 到 localStorage（让你登录保持）
+    // 持久化 session 到 localStorage
     persistSession: true,
     // 从 URL 里检测登录回调（邮件链接点击后跳回时用）
     detectSessionInUrl: true,
@@ -1087,22 +1087,43 @@ async function checkAuth() {
     }
   }, 5000);
 
-  // 2 秒兜底：如果 onAuthStateChange 还没响应，自动清理坏 session 并直接显示登录页
+  // 2 秒兜底：如果 onAuthStateChange 还没响应（常见于 Chrome 被扩展拦截）
+  // 不清 session，而是尝试用本地存的 session 直接进库
   setTimeout(async () => {
     if (!_authInitialized) {
-      console.warn('[auth] 初始化超时，自动清理 session 并显示登录页');
+      console.warn('[auth] 初始化超时，尝试用本地 session 直接进库');
       _authInitialized = true;
+
+      // 尝试从 localStorage 读本地 session
+      let localSession = null;
       try {
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('sb-') || key.includes('supabase')) {
-            localStorage.removeItem(key);
+        const sbKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        if (sbKey) {
+          const raw = localStorage.getItem(sbKey);
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.access_token && parsed.user) {
+            localSession = parsed;
           }
-        });
-      } catch (e) {}
-      state.loading = false;
-      state.user = null;
-      document.getElementById('loader').style.display = 'none';
-      renderLoginPage();
+        }
+      } catch (e) {
+        console.warn('读本地 session 失败:', e);
+      }
+
+      if (localSession) {
+        // 有本地 session → 直接用它进库
+        console.log('[auth] 用本地 session 进库:', localSession.user.email);
+        state.user = localSession.user;
+        state.loading = true;
+        document.getElementById('loader').style.display = 'flex';
+        document.getElementById('app').style.display = 'none';
+        await loadUserData();
+      } else {
+        // 没本地 session → 显示登录页
+        state.loading = false;
+        state.user = null;
+        document.getElementById('loader').style.display = 'none';
+        renderLoginPage();
+      }
     }
   }, 2000);
 }
