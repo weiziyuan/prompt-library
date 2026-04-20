@@ -1027,7 +1027,16 @@ const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_x3MnmyJQyi7w6Ub2-cMYaQ_PS6S1Ces
 
 // ====================================================================
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    // 禁用自动刷新：避免某些浏览器（带扩展/隐私插件的 Chrome）下验证请求卡死
+    autoRefreshToken: false,
+    // 仍然持久化 session 到 localStorage（让你登录保持）
+    persistSession: true,
+    // 从 URL 里检测登录回调（邮件链接点击后跳回时用）
+    detectSessionInUrl: true,
+  },
+});
 
 let state = {
   user: null,
@@ -1078,20 +1087,24 @@ async function checkAuth() {
     }
   }, 5000);
 
-  // 设置一个超时兜底：3 秒内如果 onAuthStateChange 没触发，就显示登录页
-  setTimeout(() => {
+  // 2 秒兜底：如果 onAuthStateChange 还没响应，自动清理坏 session 并直接显示登录页
+  setTimeout(async () => {
     if (!_authInitialized) {
+      console.warn('[auth] 初始化超时，自动清理 session 并显示登录页');
       _authInitialized = true;
+      try {
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('sb-') || key.includes('supabase')) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (e) {}
       state.loading = false;
+      state.user = null;
       document.getElementById('loader').style.display = 'none';
-      if (state.user) {
-        document.getElementById('app').style.display = 'block';
-        renderApp();
-      } else {
-        renderLoginPage();
-      }
+      renderLoginPage();
     }
-  }, 3000);
+  }, 2000);
 }
 
 // 一键救场：清所有本地缓存并重新加载
