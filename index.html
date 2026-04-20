@@ -1030,7 +1030,7 @@ const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_x3MnmyJQyi7w6Ub2-cMYaQ_PS6S1Ces
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     // 禁用自动刷新：避免某些浏览器（带扩展/隐私插件的 Chrome）下验证请求卡死
-    autoRefreshToken: false,
+    autoRefreshToken: true,
     // 仍然持久化 session 到 localStorage（让你登录保持）
     persistSession: true,
     // 从 URL 里检测登录回调（邮件链接点击后跳回时用）
